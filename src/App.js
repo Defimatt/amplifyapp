@@ -13,6 +13,7 @@ function App() {
   const [routers, setRouters] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
   const [state, setState] = useState({ 'busy': false });
+  const [stats, setStats] = useState([]);
 
   useEffect(() => {
     fetchRouters();
@@ -20,8 +21,28 @@ function App() {
   }, []);
 
   useEffect(() => {
+    fetchStats();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     setFormData(formData => ({ ...formData, 'proposer': walletAddress}));
   }, [walletAddress]);
+
+  async function getStats() {
+    let result;
+    try {
+      result = await API.get('mylpapi', '/items/stats', {});
+      result = JSON.parse(result);
+    } catch (e) {
+      alert(e);
+    }
+    return result;
+  }
+
+  async function fetchStats() {
+    setStats((await getStats()));
+  }
 
   async function getRouters() {
     let result;
@@ -35,12 +56,6 @@ function App() {
   }
 
   async function fetchRouters() {
-    let routers = await getRouters();
-    //API.graphql({query: createRouterVoteMutation, variables: {}})
-    //for (let router in routers) {
-    // router.upVotes = 
-   // }
-    console.log(routers);
     setRouters((await getRouters()));
   }
 

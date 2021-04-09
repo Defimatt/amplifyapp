@@ -12,6 +12,7 @@ See the License for the specific language governing permissions and limitations 
 	REGION
 Amplify Params - DO NOT EDIT */
 
+const { a } = require('@aws-amplify/ui');
 const AWS = require('aws-sdk')
 var awsServerlessExpressMiddleware = require('aws-serverless-express/middleware')
 var bodyParser = require('body-parser')
@@ -58,19 +59,41 @@ const convertUrlType = (param, type) => {
   }
 }
 
-app.get("/items", function (request, response) {
+const getUserId = (req) => {
+  try {
+    const reqContext = req.apiGateway.event.requestContext;
+    const authProvider = reqContext.identity.cognitoAuthenticationProvider;
+    return authProvider ? authProvider.split(":CognitoSignIn:").pop() : "UNAUTH";
+  } catch (error) {
+    return "UNAUTH";
+  }
+}
+
+app.get("/items/stats", function (req, res) {
+  res.status(200).json({
+    userId: getUserId(req),
+    apiGateway: JSON.stringify(req.apiGateway),
+  })
+});
+
+app.get("/items", function (req, res) {
   let params = {
     TableName: tableName
-  }
-  console.info("API GATEWAY: " + JSON.stringify(request?.apiGateway));
-  console.info("USER IDENTITY: " + request?.apiGateway?.event?.requestContext?.identity?.cognitoIdentityId || UNAUTH );
-  dynamodb.scan(params, (error, result) => {
-    if (error) {
-      response.json({ statusCode: 500, error: error.message });
+  };
+
+  dynamodb.scan(params, (err, data) => {
+    if (err) {
+      res.status(500).json({
+        error: err.message
+      });
     } else {
-      response.json({ statusCode: 200, url: request.url, body: JSON.stringify(result.Items) })
+      res.status(200).json(JSON.stringify(data.Items));
     }
   });
+
+  console.info("API GATEWAY: " + JSON.stringify(req?.apiGateway));
+  console.info("USER IDENTITY: " + req?.apiGateway?.event?.requestContext?.identity?.cognitoIdentityId || UNAUTH );
+  
 });
 
 app.get(path + hashKeyPath, function(req, res) {
